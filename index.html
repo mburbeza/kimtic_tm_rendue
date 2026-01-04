@@ -1,0 +1,761 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>KINETIC™ ULTIMA | Physical Sandbox</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* --- ULTRA MODERN THEME --- */
+            --bg: #09090b;
+            --surface-glass: rgba(24, 24, 27, 0.7);
+            --surface-solid: #18181b;
+            --border: rgba(255, 255, 255, 0.08);
+            --border-light: rgba(255, 255, 255, 0.15);
+            
+            --primary: #6366f1; /* Indigo */
+            --primary-bright: #818cf8;
+            --secondary: #ec4899; /* Pink */
+            
+            --text-main: #f4f4f5;
+            --text-muted: #a1a1aa;
+            
+            --ease-elastic: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            --ease-smooth: cubic-bezier(0.2, 0.8, 0.2, 1);
+            --shadow-float: 0 20px 50px -12px rgba(0, 0, 0, 0.7);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-tap-highlight-color: transparent; outline: none; }
+        
+        body {
+            background-color: var(--bg);
+            color: var(--text-main);
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            width: 100vw; height: 100vh;
+            overflow: hidden;
+        }
+
+        /* --- UI COMPONENTS --- */
+        
+        /* Floating Navbar */
+        .navbar {
+            position: fixed; top: 0; left: 0; width: 100%; height: 72px;
+            display: flex; justify-content: center; align-items: center;
+            z-index: 100; pointer-events: none;
+            transition: transform 0.5s var(--ease-smooth);
+        }
+        body.mode-studio .navbar { transform: translateY(-120%); }
+
+        .nav-island {
+            pointer-events: auto;
+            background: var(--surface-glass); backdrop-filter: blur(24px);
+            border: 1px solid var(--border); border-radius: 99px;
+            padding: 6px; display: flex; gap: 4px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .nav-link {
+            padding: 10px 24px; border-radius: 99px;
+            font-size: 14px; font-weight: 500; color: var(--text-muted);
+            cursor: pointer; transition: 0.3s;
+        }
+        .nav-link:hover { color: var(--text-main); background: rgba(255,255,255,0.05); }
+        .nav-link.active { background: #fff; color: #000; font-weight: 600; box-shadow: 0 4px 12px rgba(255,255,255,0.2); }
+
+        .brand-corner {
+            position: absolute; top: 28px; left: 32px; z-index: 100; pointer-events: auto;
+            display: flex; align-items: center; gap: 10px; cursor: pointer;
+        }
+        .brand-logo { width: 24px; height: 24px; background: linear-gradient(135deg, var(--primary), var(--secondary)); border-radius: 6px; }
+        .brand-text { font-family: 'JetBrains Mono', monospace; font-weight: 700; letter-spacing: -0.5px; font-size: 16px; }
+
+        /* --- PAGES SYSTEM --- */
+        .page {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            display: flex; flex-direction: column; opacity: 0; pointer-events: none;
+            transition: opacity 0.5s var(--ease-smooth), transform 0.5s var(--ease-smooth);
+            transform: scale(0.95);
+        }
+        .page.active { opacity: 1; pointer-events: auto; transform: scale(1); z-index: 10; }
+
+        /* --- HERO (HOME) --- */
+        #home { align-items: center; justify-content: center; text-align: center; }
+        .hero-bg-anim { position: absolute; inset: 0; z-index: -1; opacity: 0.6; }
+        
+        .hero-content { z-index: 2; padding: 0 20px; max-width: 900px; }
+        h1 {
+            font-size: clamp(3rem, 7vw, 6rem); line-height: 1; font-weight: 800; letter-spacing: -0.04em;
+            margin-bottom: 24px; background: linear-gradient(to bottom, #fff, #999);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        .subtitle {
+            font-size: 1.25rem; color: var(--text-muted); max-width: 600px; margin: 0 auto 40px;
+            line-height: 1.6;
+        }
+        
+        .cta-btn {
+            background: #fff; color: #000; padding: 16px 40px; border-radius: 16px;
+            font-weight: 700; font-size: 15px; border: none; cursor: pointer;
+            transition: transform 0.2s var(--ease-elastic), box-shadow 0.2s;
+        }
+        .cta-btn:hover { transform: scale(1.05); box-shadow: 0 0 40px rgba(255,255,255,0.3); }
+
+        /* --- STUDIO (APP) --- */
+        #studio { background: #000; overflow: hidden; }
+        .studio-overlay { position: absolute; inset: 0; z-index: 50; pointer-events: none; }
+        canvas { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+        /* Header in Studio */
+        .studio-top {
+            position: absolute; top: 20px; left: 24px; right: 24px; height: 60px;
+            display: flex; justify-content: space-between; align-items: center;
+            pointer-events: auto;
+        }
+        
+        .icon-btn {
+            width: 44px; height: 44px; border-radius: 12px; background: var(--surface-glass);
+            border: 1px solid var(--border); display: flex; align-items: center; justify-content: center;
+            color: var(--text-muted); cursor: pointer; backdrop-filter: blur(12px);
+            transition: 0.2s;
+        }
+        .icon-btn:hover { background: var(--border); color: #fff; transform: translateY(-2px); }
+        .icon-btn.active { background: var(--primary); border-color: var(--primary); color: #fff; box-shadow: 0 0 20px var(--primary-glow); }
+
+        /* Dock (Bottom Tools) */
+        .dock-wrap {
+            position: absolute; bottom: 40px; left: 50%; transform: translateX(-50%);
+            background: var(--surface-glass); backdrop-filter: blur(24px);
+            padding: 8px; border-radius: 24px; border: 1px solid var(--border);
+            display: flex; gap: 8px; pointer-events: auto;
+            box-shadow: var(--shadow-float); transition: 0.2s;
+        }
+        .dock-wrap:hover { border-color: var(--border-light); transform: translateX(-50%) translateY(-5px); }
+
+        .tool {
+            width: 54px; height: 54px; border-radius: 18px; display: flex; align-items: center; justify-content: center;
+            position: relative; cursor: pointer; color: var(--text-muted); transition: 0.2s;
+        }
+        .tool:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        .tool.active { background: #fff; color: #000; box-shadow: 0 2px 15px rgba(255,255,255,0.3); }
+        
+        /* Tooltip */
+        .tool::after {
+            content: attr(data-label); position: absolute; top: -45px; left: 50%; transform: translateX(-50%) translateY(10px);
+            background: #000; color: #fff; padding: 6px 12px; border-radius: 8px; font-size: 11px; font-weight: 600;
+            opacity: 0; transition: 0.3s; pointer-events: none; white-space: nowrap; border: 1px solid var(--border);
+        }
+        .tool:hover::after { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        /* Slide-over Settings */
+        .panel {
+            position: absolute; top: 100px; right: 24px; bottom: 40px; width: 320px;
+            background: var(--surface-glass); backdrop-filter: blur(40px);
+            border: 1px solid var(--border); border-radius: 24px;
+            transform: translateX(120%); transition: transform 0.5s var(--ease-elastic);
+            pointer-events: auto; padding: 24px; overflow-y: auto; display: flex; flex-direction: column;
+        }
+        .panel.open { transform: translateX(0); }
+
+        .panel-block { margin-bottom: 24px; }
+        .panel-label { 
+            font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); 
+            margin-bottom: 16px; font-weight: 700; font-family: 'JetBrains Mono';
+        }
+
+        .slider-row { margin-bottom: 20px; }
+        .range-header { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+        
+        /* Styled Range */
+        input[type="range"] {
+            -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.1); border-radius: 4px;
+        }
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none; width: 18px; height: 18px; background: #fff; border-radius: 50%;
+            cursor: pointer; box-shadow: 0 0 10px rgba(0,0,0,0.5); transition: 0.1s;
+        }
+        input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.2); background: var(--primary-bright); }
+
+        /* Color Grid */
+        .color-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+        .swatch {
+            width: 100%; aspect-ratio: 1; border-radius: 12px; border: 2px solid transparent; cursor: pointer; transition: 0.2s;
+        }
+        .swatch:hover { transform: scale(1.1); }
+        .swatch.active { border-color: #fff; transform: scale(1.1); }
+
+        /* --- CONTACT & GALLERY --- */
+        #gallery { padding: 40px; background: var(--bg); overflow-y: auto; }
+        .gallery-grid {
+            display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 24px;
+            max-width: 1400px; margin: 40px auto;
+        }
+        .card {
+            background: var(--surface-solid); border: 1px solid var(--border); border-radius: 20px;
+            overflow: hidden; cursor: pointer; transition: 0.3s;
+        }
+        .card:hover { transform: translateY(-8px); border-color: var(--primary); box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5); }
+        
+        /* Contact Form */
+        #contact { display: flex; align-items: center; justify-content: center; }
+        .form-glass {
+            width: 100%; max-width: 480px; padding: 40px; background: var(--surface-glass);
+            border: 1px solid var(--border); border-radius: 24px; backdrop-filter: blur(24px);
+        }
+        .inp {
+            width: 100%; padding: 16px; background: rgba(0,0,0,0.3); border: 1px solid var(--border);
+            border-radius: 12px; color: #fff; margin-bottom: 16px; font-family: inherit; transition: 0.3s;
+        }
+        .inp:focus { border-color: var(--primary); background: rgba(0,0,0,0.5); }
+
+        /* Toast */
+        .toast {
+            position: fixed; bottom: 40px; right: 40px;
+            padding: 12px 24px; background: #fff; color: #000; border-radius: 99px;
+            font-weight: 600; font-size: 13px; transform: translateY(100px); opacity: 0;
+            transition: 0.4s var(--ease-elastic); z-index: 999; box-shadow: 0 10px 40px rgba(0,0,0,0.4);
+        }
+        .toast.visible { transform: translateY(0); opacity: 1; }
+
+        /* SVG */
+        svg { width: 22px; height: 22px; fill: currentColor; }
+    </style>
+</head>
+<body>
+
+    <div class="brand-corner" onclick="router.go('home')">
+        <div class="brand-logo"></div>
+        <div class="brand-text">KINETIC</div>
+    </div>
+
+    <!-- MAIN NAV -->
+    <nav class="navbar">
+        <div class="nav-island">
+            <div class="nav-link active" data-page="home" onclick="router.go('home')">Découvrir</div>
+            <div class="nav-link" data-page="gallery" onclick="router.go('gallery')">Projets</div>
+            <div class="nav-link" data-page="contact" onclick="router.go('contact')">Contact</div>
+        </div>
+    </nav>
+
+    <!-- TOAST -->
+    <div class="toast" id="toast">Message envoyé</div>
+
+    <!-- PAGE: HOME -->
+    <div id="home" class="page active">
+        <canvas id="hero-canvas" class="hero-bg-anim"></canvas>
+        <div class="hero-content">
+            <h1>LA CRÉATION<br>ORGANIQUE.</h1>
+            <p class="subtitle">Dessinez, déformez et expérimentez avec la physique Soft Body de nouvelle génération.</p>
+            <button class="cta-btn" onclick="router.go('studio')">Lancer le Studio</button>
+        </div>
+    </div>
+
+    <!-- PAGE: STUDIO -->
+    <div id="studio" class="page">
+        <div class="studio-overlay">
+            
+            <!-- Header Controls -->
+            <div class="studio-top">
+                <div class="icon-btn" onclick="router.go('home')" title="Quitter Studio">
+                    <svg viewBox="0 0 24 24"><path d="M20 11H7.83l5.59-5.59L12 4l-8 8 8 8 1.41-1.41L7.83 13H20v-2z"/></svg>
+                </div>
+                
+                <div style="font-family:'JetBrains Mono'; font-size:12px; color:var(--text-muted)">MODE: DÉFORMATION ACTIF</div>
+
+                <div class="icon-btn" id="btn-settings" onclick="ui.toggleSettings()" title="Paramètres">
+                    <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L3.16 8.87c-.09.17-.05.38.07.51a.503.503 0 0 0 .05.09l2.02 1.58c-.04.3-.06.63-.06.94 0 .31.02.63.06.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.58 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.09-.22.05-.44-.07-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+                </div>
+            </div>
+
+            <!-- Slide Panel -->
+            <aside class="panel">
+                <div class="panel-block">
+                    <div class="panel-label">ENVIRONNEMENT</div>
+                    <div class="slider-row">
+                        <div class="range-header"><span>Gravité Y</span> <span id="l-gy">0.8</span></div>
+                        <input type="range" min="-1" max="2" step="0.1" value="0.8" oninput="sim.gravity.y=parseFloat(this.value); ui.sync()">
+                    </div>
+                    <div class="slider-row">
+                        <div class="range-header"><span>Vent X</span> <span id="l-gx">0.0</span></div>
+                        <input type="range" min="-1" max="1" step="0.1" value="0.0" oninput="sim.gravity.x=parseFloat(this.value); ui.sync()">
+                    </div>
+                </div>
+
+                <div class="panel-block">
+                    <div class="panel-label">MATÉRIAU (SOFT BODY)</div>
+                    <div class="slider-row">
+                        <div class="range-header"><span>Rigidité</span> <span id="l-stiff">0.5</span></div>
+                        <input type="range" min="0.05" max="1.0" step="0.05" value="0.5" oninput="sim.stiffness=parseFloat(this.value); ui.sync()">
+                    </div>
+                    <div class="slider-row">
+                        <div class="range-header"><span>Friction</span> <span id="l-fric">0.99</span></div>
+                        <input type="range" min="0.90" max="1.00" step="0.001" value="0.99" oninput="sim.friction=parseFloat(this.value); ui.sync()">
+                    </div>
+                </div>
+
+                <div class="panel-block">
+                    <div class="panel-label">PALETTE</div>
+                    <div class="color-grid">
+                        <div class="swatch active" style="background:#fff" onclick="sim.setColor('#ffffff', this)"></div>
+                        <div class="swatch" style="background:#6366f1" onclick="sim.setColor('#6366f1', this)"></div>
+                        <div class="swatch" style="background:#ec4899" onclick="sim.setColor('#ec4899', this)"></div>
+                        <div class="swatch" style="background:#eab308" onclick="sim.setColor('#eab308', this)"></div>
+                        <div class="swatch" style="background:#10b981" onclick="sim.setColor('#10b981', this)"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top:auto; display:flex; gap:10px;">
+                    <button class="nav-link" style="border:1px solid var(--border); padding:10px; width:100%; justify-content:center; display:flex;" onclick="sim.reset()">Effacer</button>
+                    <button class="nav-link active" style="padding:10px; width:100%; justify-content:center; display:flex;" onclick="app.save()">Sauver</button>
+                </div>
+            </aside>
+
+            <!-- Floating Dock -->
+            <div class="dock-wrap">
+                <div class="tool active" onclick="sim.setTool('hand')" data-label="Déformer / Jeter">
+                    <svg viewBox="0 0 24 24"><path d="M18 13v6c0 1.1-.9 2-2 2h-6c-1.1 0-2-.9-2-2v-6H5v-2l7-7 7 7v2h-3z" transform="rotate(180 12 12)"/></svg>
+                </div>
+                <div style="width:1px; background:var(--border); margin:0 2px;"></div>
+                <div class="tool" onclick="sim.setTool('pen')" data-label="Dessiner">
+                    <svg viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+                </div>
+                <div class="tool" onclick="sim.setTool('box')" data-label="Cube Mou">
+                    <svg viewBox="0 0 24 24"><path d="M3 3h18v18H3z"/></svg>
+                </div>
+                <div class="tool" onclick="sim.setTool('circle')" data-label="Cercle">
+                    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/></svg>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Interesting BG for Studio (Grid) -->
+        <canvas id="studio-canvas"></canvas>
+    </div>
+
+    <!-- PAGE: GALLERY -->
+    <div id="gallery" class="page">
+        <div style="max-width:1400px; margin:40px auto; padding:0 32px;">
+            <h2 style="font-size:32px; margin-bottom:10px;">Projets Sauvegardés</h2>
+            <div class="gallery-grid" id="gallery-container"></div>
+        </div>
+    </div>
+
+    <!-- PAGE: CONTACT -->
+    <div id="contact" class="page">
+        <div class="form-glass">
+            <h2 style="margin-bottom:30px;">Contactez le support</h2>
+            <input class="inp" type="text" placeholder="Nom">
+            <input class="inp" type="email" placeholder="Email">
+            <textarea class="inp" rows="4" placeholder="Message..."></textarea>
+            <button class="cta-btn" style="width:100%" onclick="ui.toast('Message envoyé !')">Envoyer</button>
+        </div>
+    </div>
+
+<script>
+/**
+ * KINETIC ENGINE v7
+ * Verlet Physics with INTERNAL CONSTRAINTS for Shapes (Soft Body)
+ */
+
+const Vec = { dist: (a, b) => Math.hypot(a.x - b.x, a.y - b.y) };
+
+const sim = {
+    canvas: document.getElementById('studio-canvas'),
+    ctx: document.getElementById('studio-canvas').getContext('2d'),
+    width: 0, height: 0, running: false,
+    
+    // Config
+    gravity: { x: 0, y: 0.8 },
+    friction: 0.99,
+    stiffness: 0.5,
+    color: '#ffffff',
+    
+    // Physics World
+    points: [],
+    constraints: [],
+    
+    // Interactive State
+    tool: 'hand',
+    isDown: false,
+    dragPoint: null,
+    mouse: {x:0, y:0}, lastMouse: {x:0, y:0},
+    drawPath: [],
+
+    init() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        
+        // Input Listeners
+        const c = this.canvas;
+        c.addEventListener('mousedown', e => this.onStart(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => this.onMove(e.clientX, e.clientY));
+        window.addEventListener('mouseup', () => this.onEnd());
+        
+        c.addEventListener('touchstart', e => { e.preventDefault(); this.onStart(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+        c.addEventListener('touchmove', e => { e.preventDefault(); this.onMove(e.touches[0].clientX, e.touches[0].clientY); }, {passive:false});
+        window.addEventListener('touchend', () => this.onEnd());
+        
+        this.loop();
+    },
+
+    resize() {
+        this.width = window.innerWidth;
+        this.height = window.innerHeight;
+        this.canvas.width = this.width; this.canvas.height = this.height;
+    },
+
+    start() { if(!this.running) { this.running = true; this.loop(); } },
+    stop() { this.running = false; },
+    reset() { this.points = []; this.constraints = []; },
+
+    setColor(c, el) { 
+        this.color = c;
+        if(el) {
+            document.querySelectorAll('.swatch').forEach(s => s.classList.remove('active'));
+            el.classList.add('active');
+        }
+    },
+
+    setTool(t) {
+        this.tool = t;
+        document.querySelectorAll('.tool').forEach(el => el.classList.remove('active'));
+        const idx = ['hand','pen','box','circle'].indexOf(t);
+        document.querySelectorAll('.tool')[idx].classList.add('active');
+        this.canvas.style.cursor = t==='hand' ? 'grab' : 'crosshair';
+    },
+
+    // --- PHYSICS ENTITY BUILDER ---
+    
+    addPoint(x, y, locked=false) {
+        const p = { x, y, oldx: x, oldy: y, locked };
+        this.points.push(p);
+        return p;
+    },
+
+    addConstraint(p1, p2, len=null) {
+        const dist = len || Vec.dist(p1, p2);
+        this.constraints.push({ p1, p2, length: dist, color: this.color });
+    },
+
+    createBox(x, y, size) {
+        // Creates a Box with X-Bracing for volume retention (Soft Body)
+        const p1 = this.addPoint(x, y);
+        const p2 = this.addPoint(x+size, y);
+        const p3 = this.addPoint(x+size, y+size);
+        const p4 = this.addPoint(x, y+size);
+        
+        // Perimeter
+        this.addConstraint(p1, p2); this.addConstraint(p2, p3);
+        this.addConstraint(p3, p4); this.addConstraint(p4, p1);
+        
+        // Internal Structure (Cross) - makes it behave like a jelly block, not a collapsing rag
+        this.addConstraint(p1, p3);
+        this.addConstraint(p2, p4);
+    },
+
+    createWheel(cx, cy, r) {
+        const segs = 10;
+        const center = this.addPoint(cx, cy);
+        const rim = [];
+        
+        for(let i=0; i<segs; i++) {
+            const angle = (i/segs) * Math.PI * 2;
+            const p = this.addPoint(cx + Math.cos(angle)*r, cy + Math.sin(angle)*r);
+            rim.push(p);
+            this.addConstraint(center, p); // Spoke
+        }
+        
+        // Rim connections
+        for(let i=0; i<segs; i++) {
+            this.addConstraint(rim[i], rim[(i+1)%segs]);
+        }
+    },
+
+    createPolyFromDraw(path) {
+        // Convert drawing path to simplified polygon
+        if(path.length < 3) return;
+        
+        // 1. Simplify
+        const simple = [path[0]];
+        for(let i=1; i<path.length; i++) {
+            if(Vec.dist(path[i], simple[simple.length-1]) > 25) { // Sampling distance
+                simple.push(path[i]);
+            }
+        }
+        if(Vec.dist(simple[0], simple[simple.length-1]) < 30) simple.pop(); // Auto-close detection
+
+        // 2. Create Points
+        const bodyPts = simple.map(pt => this.addPoint(pt.x, pt.y));
+        
+        // 3. Create Constraints
+        for(let i=0; i<bodyPts.length-1; i++) {
+            this.addConstraint(bodyPts[i], bodyPts[i+1]);
+        }
+        
+        // Auto-close loop if end is near start
+        if(Vec.dist(simple[0], simple[simple.length-1]) < 50) {
+            this.addConstraint(bodyPts[bodyPts.length-1], bodyPts[0]);
+            
+            // Add internal structure randomly to maintain shape?
+            // Simple center centroid method:
+            let cx=0, cy=0;
+            bodyPts.forEach(p => {cx+=p.x; cy+=p.y}); cx/=bodyPts.length; cy/=bodyPts.length;
+            const center = this.addPoint(cx, cy);
+            
+            bodyPts.forEach((p, i) => {
+                if(i%2===0) this.addConstraint(center, p); // Connect every 2nd point to center
+            });
+        }
+    },
+
+    // --- INPUT HANDLING ---
+    onStart(x, y) {
+        this.isDown = true;
+        this.mouse = {x, y}; this.lastMouse = {x, y};
+        this.drawPath = [{x,y}];
+
+        if(this.tool === 'hand') {
+            let min = 50, nearest = null;
+            for(let p of this.points) {
+                const d = Vec.dist({x,y}, p);
+                if(d < min) { min = d; nearest = p; }
+            }
+            this.dragPoint = nearest;
+            this.canvas.style.cursor = 'grabbing';
+        }
+    },
+
+    onMove(x, y) {
+        this.lastMouse = this.mouse; this.mouse = {x, y};
+        if(this.isDown && this.tool === 'pen') {
+            const last = this.drawPath[this.drawPath.length-1];
+            if(Vec.dist({x,y}, last) > 5) this.drawPath.push({x,y});
+        }
+    },
+
+    onEnd() {
+        this.isDown = false;
+        this.dragPoint = null;
+        this.canvas.style.cursor = this.tool === 'hand' ? 'grab' : 'crosshair';
+
+        if(this.tool === 'pen') this.createPolyFromDraw(this.drawPath);
+        else if(this.tool === 'box') {
+            const w = Math.abs(this.mouse.x - this.drawPath[0].x);
+            if(w>20) this.createBox(this.drawPath[0].x, this.drawPath[0].y, w);
+        } else if(this.tool === 'circle') {
+            const r = Vec.dist(this.drawPath[0], this.mouse);
+            if(r>10) this.createWheel(this.drawPath[0].x, this.drawPath[0].y, r);
+        }
+        
+        this.drawPath = [];
+    },
+
+    // --- MAIN LOOP ---
+    update() {
+        // Verlet Physics
+        for(let p of this.points) {
+            if(p.locked) continue;
+            if(p === this.dragPoint) {
+                p.x = this.mouse.x; p.y = this.mouse.y; // Pin to mouse
+                // Reset velocity on drag so we can throw
+                p.oldx = p.x - (this.mouse.x - this.lastMouse.x);
+                p.oldy = p.y - (this.mouse.y - this.lastMouse.y);
+                continue;
+            }
+
+            const vx = (p.x - p.oldx) * this.friction;
+            const vy = (p.y - p.oldy) * this.friction;
+
+            p.oldx = p.x; p.oldy = p.y;
+            p.x += vx + this.gravity.x; p.y += vy + this.gravity.y;
+
+            // Collision (Bounds)
+            const margin = 0;
+            if(p.x > this.width-margin) { p.x = this.width-margin; p.oldx = p.x + vx*0.8; }
+            else if(p.x < margin) { p.x = margin; p.oldx = p.x + vx*0.8; }
+            
+            if(p.y > this.height-margin) { p.y = this.height-margin; p.oldy = p.y + vy*0.8; }
+            else if(p.y < margin) { p.y = margin; p.oldy = p.y + vy*0.8; }
+        }
+
+        // Constraint Solving (Iterative)
+        const iterations = 5;
+        for(let i=0; i<iterations; i++) {
+            for(let s of this.constraints) {
+                const dx = s.p2.x - s.p1.x;
+                const dy = s.p2.y - s.p1.y;
+                const dist = Math.sqrt(dx*dx + dy*dy);
+                const diff = (s.length - dist) / dist * this.stiffness; // Elasticity
+                const offsetx = dx * diff * 0.5;
+                const offsety = dy * diff * 0.5;
+
+                if(!s.p1.locked) { s.p1.x -= offsetx; s.p1.y -= offsety; }
+                if(!s.p2.locked) { s.p2.x += offsetx; s.p2.y += offsety; }
+            }
+        }
+    },
+
+    render() {
+        this.ctx.clearRect(0,0,this.width, this.height);
+        
+        // Background Grid (for Professional Look)
+        if(this.width) {
+            this.ctx.strokeStyle = '#1a1a1a';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            const sz = 60;
+            const offX = 0, offY = 0;
+            for(let x=0;x<this.width;x+=sz) { this.ctx.moveTo(x,0); this.ctx.lineTo(x,this.height); }
+            for(let y=0;y<this.height;y+=sz) { this.ctx.moveTo(0,y); this.ctx.lineTo(this.width,y); }
+            this.ctx.stroke();
+        }
+
+        // Drawing path
+        if(this.isDown && this.tool === 'pen') {
+            this.ctx.beginPath();
+            this.ctx.moveTo(this.drawPath[0].x, this.drawPath[0].y);
+            for(let p of this.drawPath) this.ctx.lineTo(p.x, p.y);
+            this.ctx.strokeStyle = '#fff';
+            this.ctx.lineWidth = 2;
+            this.ctx.stroke();
+        } else if(this.isDown && (this.tool==='box'||this.tool==='circle')) {
+            const w = this.mouse.x - this.drawPath[0].x;
+            const h = this.mouse.y - this.drawPath[0].y;
+            this.ctx.strokeStyle = '#6366f1';
+            this.ctx.strokeRect(this.drawPath[0].x, this.drawPath[0].y, w, h);
+        }
+
+        // Render Physics Objects
+        this.ctx.lineWidth = 2;
+        this.ctx.lineCap = 'round';
+        for(let s of this.constraints) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(s.p1.x, s.p1.y);
+            this.ctx.lineTo(s.p2.x, s.p2.y);
+            this.ctx.strokeStyle = s.color;
+            // Add slight neon glow
+            this.ctx.shadowBlur = 8;
+            this.ctx.shadowColor = s.color;
+            this.ctx.stroke();
+            this.ctx.shadowBlur = 0;
+        }
+        
+        // Render Points if dragging
+        if(this.dragPoint) {
+            this.ctx.beginPath();
+            this.ctx.arc(this.dragPoint.x, this.dragPoint.y, 6, 0, Math.PI*2);
+            this.ctx.fillStyle = '#fff'; this.ctx.fill();
+        }
+    },
+
+    loop() {
+        if(!this.running) return;
+        this.update(); this.render();
+        requestAnimationFrame(()=>this.loop());
+    }
+};
+
+/* --- UI CONTROLLER --- */
+const ui = {
+    toggleSettings() {
+        document.querySelector('.panel').classList.toggle('open');
+        document.getElementById('btn-settings').classList.toggle('active');
+    },
+    sync() {
+        document.getElementById('l-gy').innerText = sim.gravity.y;
+        document.getElementById('l-gx').innerText = sim.gravity.x;
+        document.getElementById('l-stiff').innerText = sim.stiffness;
+        document.getElementById('l-fric').innerText = sim.friction;
+    },
+    toast(msg) {
+        const t = document.getElementById('toast');
+        t.innerText = msg;
+        t.classList.add('visible');
+        setTimeout(() => t.classList.remove('visible'), 3000);
+    }
+};
+
+const router = {
+    go(id) {
+        document.body.classList.toggle('mode-studio', id==='studio');
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-link').forEach(n => {
+            n.classList.toggle('active', n.dataset.page===id);
+        });
+
+        if(id==='studio') { sim.running=true; sim.resize(); sim.loop(); bgAnim.stop(); }
+        else if(id==='home') { sim.running=false; bgAnim.start(); }
+        else { sim.running=false; bgAnim.stop(); }
+        
+        if(id==='gallery') app.renderGallery();
+    }
+};
+
+const app = {
+    save() {
+        // Screenshot
+        const img = sim.canvas.toDataURL('image/jpeg', 0.5);
+        const proj = { id:Date.now(), date:new Date().toLocaleDateString(), img };
+        const saves = JSON.parse(localStorage.getItem('kinetic_ultimate')||'[]');
+        saves.unshift(proj);
+        localStorage.setItem('kinetic_ultimate', JSON.stringify(saves));
+        ui.toast('Projet Sauvegardé');
+    },
+    renderGallery() {
+        const cont = document.getElementById('gallery-container');
+        const saves = JSON.parse(localStorage.getItem('kinetic_ultimate')||'[]');
+        if(!cont) return;
+        if(saves.length===0) { cont.innerHTML='<div style="color:#666">Vide.</div>'; return; }
+        
+        cont.innerHTML = saves.map(s => `
+            <div class="card" style="height:200px; background:var(--surface-glass); border-radius:12px; overflow:hidden; border:1px solid var(--border);">
+                <img src="${s.img}" style="width:100%; height:100%; object-fit:cover;">
+            </div>
+        `).join('');
+    }
+};
+
+// --- BACKGROUND ANIMATION (HOME) ---
+const bgAnim = {
+    canvas: document.getElementById('hero-canvas'),
+    ctx: document.getElementById('hero-canvas').getContext('2d'),
+    running: false,
+    particles: [],
+    init() {
+        this.resize();
+        window.addEventListener('resize', () => this.resize());
+        for(let i=0; i<30; i++) this.particles.push({
+            x:Math.random()*this.canvas.width, y:Math.random()*this.canvas.height,
+            vx:(Math.random()-0.5)*0.5, vy:(Math.random()-0.5)*0.5, r:Math.random()*3
+        });
+        this.start();
+    },
+    resize() {
+        this.canvas.width = window.innerWidth;
+        this.canvas.height = window.innerHeight;
+    },
+    start() { if(!this.running) { this.running=true; this.loop(); } },
+    stop() { this.running=false; },
+    loop() {
+        if(!this.running) return;
+        this.ctx.clearRect(0,0,this.canvas.width, this.canvas.height);
+        this.ctx.fillStyle = 'rgba(255,255,255,0.15)';
+        this.particles.forEach(p => {
+            p.x+=p.vx; p.y+=p.vy;
+            if(p.x<0||p.x>this.canvas.width) p.vx*=-1;
+            if(p.y<0||p.y>this.canvas.height) p.vy*=-1;
+            this.ctx.beginPath(); this.ctx.arc(p.x,p.y,p.r,0,Math.PI*2); this.ctx.fill();
+        });
+        requestAnimationFrame(()=>this.loop());
+    }
+};
+
+// Init
+sim.init();
+bgAnim.init();
+</script>
+</body>
+</html>
